@@ -1,0 +1,74 @@
+Program.Sub.ScreenSU.Start
+Gui.frmBOMMatUpdate..Create
+Gui.frmBOMMatUpdate..Caption("Update BOM Material")
+Gui.frmBOMMatUpdate..Size(4425,2025)
+Gui.frmBOMMatUpdate..MinX(0)
+Gui.frmBOMMatUpdate..MinY(0)
+Gui.frmBOMMatUpdate..Position(0,0)
+Gui.frmBOMMatUpdate..BackColor(-2147483633)
+Gui.frmBOMMatUpdate..MousePointer(0)
+Gui.frmBOMMatUpdate..Event(UnLoad,frmBOMMatUpdate_UnLoad)
+Gui.frmBOMMatUpdate.txtPart.Create(TextBox,"",True,1995,300,0,90,75,True,0,"Arial",8,-2147483643,1)
+Gui.frmBOMMatUpdate.cmdBrowse.Create(Button)
+Gui.frmBOMMatUpdate.cmdBrowse.Size(510,375)
+Gui.frmBOMMatUpdate.cmdBrowse.Position(2160,30)
+Gui.frmBOMMatUpdate.cmdBrowse.Caption("^")
+Gui.frmBOMMatUpdate.cmdBrowse.Event(Click,cmdBrowse_Click)
+Gui.frmBOMMatUpdate.txtPercent.Create(TextBox,"",True,1215,300,0,90,585,True,0,"Arial",8,-2147483643,1)
+Gui.frmBOMMatUpdate.txtPercent.NumericOnly(1)
+Gui.frmBOMMatUpdate.cmdProcess.Create(Button)
+Gui.frmBOMMatUpdate.cmdProcess.Size(855,375)
+Gui.frmBOMMatUpdate.cmdProcess.Position(90,975)
+Gui.frmBOMMatUpdate.cmdProcess.Caption("Process")
+Gui.frmBOMMatUpdate.cmdProcess.Event(Click,cmdProcess_Click)
+Gui.frmBOMMatUpdate.lbl1.Create(Label,"Percent increase/decrease (ex: 1.05)",True,2910,255,0,1380,690,True,0,"Arial",8,-2147483633,0)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+f.ODBC.Connection!con.opencompanyconnection
+f.Intrinsic.UI.SetBrowserHotTypeAhead(true)
+gui.frmBOMMatUpdate..Show
+Program.Sub.Main.End
+
+Program.Sub.cmdBrowse_Click.Start
+V.Local.sSQL.Declare(String)
+V.Local.sCol.Declare(String)
+V.Local.sColW.Declare(String)
+V.Local.sRet.Declare(String)
+V.Local.sSQL.Set("SELECT PART, DESCRIPTION, PRODUCT_LINE, CODE_SORT, CODE_SOURCE FROM V_INVENTORY_ALL")
+'Split Column Names into an array (*!* delimited string)
+F.Intrinsic.String.Split("Part*!*Description*!*Product Line*!*Sort Code*!*Source Code","*!*",V.Local.sCol)
+'Split Column widths into an array (*!* delimited string)
+F.Intrinsic.String.Split("1000*!*2000*!*300*!*800*!*300","*!*",V.Local.sColW)
+F.Intrinsic.UI.Browser("Select a Part","con",V.Local.sSQL,V.Local.sCol,V.Local.sColW,V.Local.sRet)
+F.Intrinsic.Control.If(V.Local.sRet,<>,"***CANCEL***")
+	F.Intrinsic.String.Split(v.Local.sRet,"*!*",v.Local.sRet)
+	gui.frmBOMMatUpdate.txtPart.Text(v.Local.sRet(0).trim)
+F.Intrinsic.Control.EndIf
+Program.Sub.cmdBrowse_Click.End
+
+Program.Sub.cmdProcess_Click.Start
+f.Intrinsic.Control.Try
+	v.Local.sSql.Declare
+	v.Local.sPart.Declare
+	v.Local.fPrct.Declare
+	
+	v.Local.sPart.Set(v.Screen.frmBOMMatUpdate!txtPart.text)
+	v.Local.fPrct.Set(v.Screen.frmBOMMatUpdate!txtPercent.text)
+	f.Intrinsic.String.Build("UPDATE BOM_MSTR SET QUANTITY=QUANTITY*{0}, QUANTITY_6=QUANTITY_6*{0} WHERE PART='{1}' AND SEQUENCE_BOM<>'0000'",v.Local.fPrct,v.Local.sPart,v.Local.ssql)
+	f.ODBC.Connection!con.execute(v.Local.ssql)
+	gui.frmBOMMatUpdate.txtPart.Text("")
+	gui.frmBOMMatUpdate.txtPercent.Text("")
+f.Intrinsic.Control.Catch
+	f.Intrinsic.UI.Msgbox(v.Ambient.ErrorDescription)
+	f.Intrinsic.Control.CallSub(frmBOMMatUpdate_UnLoad)
+f.Intrinsic.Control.EndTry
+Program.Sub.cmdProcess_Click.End
+
+Program.Sub.frmBOMMatUpdate_UnLoad.Start
+f.ODBC.Connection!con.Close
+f.Intrinsic.Control.End
+Program.Sub.frmBOMMatUpdate_UnLoad.End
